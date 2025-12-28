@@ -19,11 +19,11 @@ An intelligent system monitor that uses FastMCP to expose OS metrics to LLM clie
 - Müjgan Selen Karakaş
 
 ## Features
-- Real-time CPU monitoring
-- Memory usage tracking
-- Disk space monitoring
-- Process listing and analysis
-- Natural language interface via LLM
+- **Real-time Monitoring**: CPU (overall and per-core), RAM, and Disk space tracking.
+- **Process Control**: Search, terminate, suspend, and resume processes directly via natural language.
+- **Cloud Logging**: Automatic background logging of performance metrics to Firebase Firestore.
+- **Historical Analysis**: Retrieve and analyze historical performance trends from the cloud.
+- **Natural Language Interface**: Fully integrated with FastMCP for interaction via Cursor or other LLM clients.
 
 ## Installation
 
@@ -32,11 +32,9 @@ An intelligent system monitor that uses FastMCP to expose OS metrics to LLM clie
 cd "AssistedSystemMonitor"
 ```
 
-2. **Create virtual environment**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+2. **Setup Firebase**
+   - Place your `firebase-key.json` in the root directory.
+   - The system will automatically use it for cloud logging.
 
 3. **Install dependencies**
 ```bash
@@ -50,45 +48,21 @@ pip install -r requirements.txt
 python src/server.py
 ```
 
-### Available Tools
-1. `get_cpu_info()` - Returns CPU usage statistics
-2. `get_memory_info()` - Returns RAM usage information
-3. `get_disk_info()` - Returns disk usage statistics
-4. `get_top_processes(limit, sort_by)` - Returns top processes by CPU or memory
-
-## Configuration
-
-Copy `.env.example` to `.env` and add your OpenAI API key:
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```
-OPENAI_API_KEY=your_actual_key_here
-```
-
-## macOS Permissions
-
-On macOS, you may need to grant Terminal or your IDE accessibility permissions:
-1. System Preferences → Security & Privacy → Privacy → Accessibility
-2. Add Terminal or your IDE to the allowed apps
+### Key Tools
+1. `get_system_summary()` - Quick overview of entire system status.
+2. `get_top_processes()` - List resource-heavy processes.
+3. `terminate_process(pid)` - Stop a specific process.
+4. `get_historical_stats()` - Pull history from Firebase.
 
 ## Project Structure
 ```
 AssistedSystemMonitor/
 ├── src/
-│   ├── __init__.py
-│   └── server.py          # FastMCP server
+│   ├── firebase_logger.py # Firebase integration
+│   └── server.py          # Main FastMCP server
+├── scripts/               # Diagnostic and test scripts
+├── firebase-key.json      # Firebase credentials (not in git)
 ├── requirements.txt        # Dependencies
 ├── .gitignore             # Git ignore patterns
-├── .env.example           # Environment template
 └── README.md              # This file
-```
-
-## Future Enhancements
-- Process control (terminate, suspend, resume)
-- Cloud database integration for historical data
-- Cursor IDE integration
-- Advanced natural language queries
 ```

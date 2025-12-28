@@ -1,3 +1,5 @@
-fastmcp>=0.2.0
+fastmcp
+psutil
+firebase-admin
 psutil>=5.9.0
 python-dotenv>=1.0.0

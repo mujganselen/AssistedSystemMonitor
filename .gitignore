@@ -47,3 +47,5 @@ ENV/
 .DS_Store
 .AppleDouble
 .LSOverride
+# Credentials
+firebase-key.json

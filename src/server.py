@@ -1,12 +1,25 @@
 from fastmcp import FastMCP
 import psutil
 from datetime import datetime
+import sys
+import os
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+try:
+    from src.firebase_logger import FirebaseLogger, start_background_logging
+except ImportError:
+    from firebase_logger import FirebaseLogger, start_background_logging
+key_path = os.path.join(project_root, "firebase-key.json")
+logger = FirebaseLogger(key_path=key_path)
+start_background_logging(logger, interval=300) # Log every 5 minutes
+
 from typing import Dict, Any, List
 
-# Initialize FastMCP server
 mcp = FastMCP("System Monitor")
 
-# Helper functions
 def bytes_to_mb(bytes_value: int) -> float:
     """Convert bytes to megabytes."""
     return round(bytes_value / (1024 * 1024), 2)
@@ -17,11 +30,7 @@ def bytes_to_gb(bytes_value: int) -> float:
 
 @mcp.tool()
 def get_cpu_info() -> dict:
-    """Get current CPU usage statistics.
-
-        Returns:
-        dict: CPU usage information including overall and per-core percentages
-    """
+    """Get current CPU usage statistics."""
     try:
         return {
             "overall_percent": psutil.cpu_percent(interval=1),
@@ -34,11 +43,7 @@ def get_cpu_info() -> dict:
 
 @mcp.tool()
 def get_memory_info() -> dict:
-    """Get current RAM usage statistics.
-
-    Returns:
-        dict: Memory information including total, available, used, and percentage
-    """
+    """Get current RAM usage statistics."""
     try:
         mem = psutil.virtual_memory()
         return {
@@ -52,11 +57,7 @@ def get_memory_info() -> dict:
 
 @mcp.tool()
 def get_disk_info() -> dict:
-    """Get disk usage statistics.
-
-    Returns:
-        dict: Disk information including total, used, free space and percentage
-    """
+    """Get disk usage statistics. """
     try:
         disk = psutil.disk_usage('/')
         return {
@@ -70,15 +71,7 @@ def get_disk_info() -> dict:
 
 @mcp.tool()
 def get_top_processes(limit: int = 5, sort_by: str = "cpu") -> dict:
-    """Get top processes by resource usage.
-
-    Args:
-        limit: Number of top processes to return (default: 5)
-        sort_by: Sort by 'cpu' or 'memory' (default: 'cpu')
-
-    Returns:
-        dict: List of top processes with PID, name, CPU%, and memory%
-    """
+    """Get top processes by resource usage."""
     try:
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
@@ -93,7 +86,6 @@ def get_top_processes(limit: int = 5, sort_by: str = "cpu") -> dict:
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
-        # Sort processes
         if sort_by == "memory":
             processes.sort(key=lambda x: x['memory_percent'], reverse=True)
         else:
@@ -109,14 +101,7 @@ def get_top_processes(limit: int = 5, sort_by: str = "cpu") -> dict:
 
 @mcp.tool()
 def get_process_info(pid: int) -> Dict[str, Any]:
-    """Get detailed information about a specific process by PID.
-
-    Args:
-        pid: Process ID to query
-
-    Returns:
-        dict: Detailed process information including name, status, CPU%, memory, threads, etc.
-    """
+    """Get detailed information about a specific process by PID."""
     try:
         proc = psutil.Process(pid)
 
@@ -140,14 +125,7 @@ def get_process_info(pid: int) -> Dict[str, Any]:
 
 @mcp.tool()
 def search_process_by_name(name: str) -> List[Dict[str, Any]]:
-    """Search for processes by name (case-insensitive).
-
-    Args:
-        name: Process name to search for (partial match supported)
-
-    Returns:
-        list: List of matching processes with their details
-    """
+    """Search for processes by name."""
     matching_processes = []
 
     for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'status']):
@@ -164,11 +142,7 @@ def search_process_by_name(name: str) -> List[Dict[str, Any]]:
 
 @mcp.tool()
 def get_system_summary() -> Dict[str, Any]:
-    """Get a quick overview of the entire system.
-
-    Returns:
-        dict: System summary including CPU, memory, disk, process count, and boot time
-    """
+    """Get a quick overview of the entire system. System summary including CPU, memory, disk, process count, and boot time"""
     cpu = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
@@ -186,11 +160,7 @@ def get_system_summary() -> Dict[str, Any]:
 
 @mcp.tool()
 def get_network_stats() -> Dict[str, Any]:
-    """Get network I/O statistics.
-
-    Returns:
-        dict: Network statistics including bytes sent/received, packets, and errors
-    """
+    """Get network I/O statistics. Network statistics including bytes sent/received, packets, and errors"""
     net = psutil.net_io_counters()
 
     return {
@@ -205,20 +175,12 @@ def get_network_stats() -> Dict[str, Any]:
 
 @mcp.tool()
 def terminate_process(pid: int) -> Dict[str, Any]:
-    """Terminate a process gracefully (or forcefully if needed).
-
-    Args:
-        pid: Process ID to terminate
-
-    Returns:
-        dict: Success status and message
-    """
+    """Terminate a process (forcefully if needed)."""
     try:
         proc = psutil.Process(pid)
         proc_name = proc.name()
         proc.terminate()
 
-        # Wait up to 3 seconds for process to terminate
         proc.wait(timeout=3)
 
         return {
@@ -231,7 +193,6 @@ def terminate_process(pid: int) -> Dict[str, Any]:
     except psutil.AccessDenied:
         return {"success": False, "error": f"Access denied. Cannot terminate process {pid}"}
     except psutil.TimeoutExpired:
-        # If terminate didn't work, try kill
         try:
             proc.kill()
             return {
@@ -244,14 +205,7 @@ def terminate_process(pid: int) -> Dict[str, Any]:
 
 @mcp.tool()
 def suspend_process(pid: int) -> Dict[str, Any]:
-    """Suspend (pause) a running process.
-
-    Args:
-        pid: Process ID to suspend
-
-    Returns:
-        dict: Success status and message
-    """
+    """Suspend a running process."""
     try:
         proc = psutil.Process(pid)
         proc_name = proc.name()
@@ -269,14 +223,7 @@ def suspend_process(pid: int) -> Dict[str, Any]:
 
 @mcp.tool()
 def resume_process(pid: int) -> Dict[str, Any]:
-    """Resume a suspended process.
-
-    Args:
-        pid: Process ID to resume
-
-    Returns:
-        dict: Success status and message
-    """
+    """Resume a suspended process."""
     try:
         proc = psutil.Process(pid)
         proc_name = proc.name()
@@ -292,6 +239,10 @@ def resume_process(pid: int) -> Dict[str, Any]:
     except psutil.AccessDenied:
         return {"success": False, "error": f"Access denied to process {pid}"}
 
+@mcp.tool()
+def get_historical_stats(limit: int = 10) -> list:
+    """Get historical system statistics from the cloud database."""
+    return logger.get_history(limit=limit)
+
 if __name__ == "__main__":
-    # Run the MCP server
     mcp.run()
