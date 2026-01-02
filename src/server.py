@@ -59,7 +59,7 @@ def get_memory_info() -> dict:
 def get_disk_info() -> dict:
     """Get disk usage statistics. """
     try:
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage(os.path.abspath(os.sep))
         return {
             "total_gb": round(disk.total / (1024**3), 2),
             "used_gb": round(disk.used / (1024**3), 2),
@@ -145,7 +145,7 @@ def get_system_summary() -> Dict[str, Any]:
     """Get a quick overview of the entire system. System summary including CPU, memory, disk, process count, and boot time"""
     cpu = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
+    disk = psutil.disk_usage(os.path.abspath(os.sep))
 
     return {
         "cpu_usage_percent": cpu,
